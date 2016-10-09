@@ -5,11 +5,11 @@ A swift implementation of D*Lite (DStarLite) a pathfinding algorithm
 
 ```
 let pf = Starlight(start: Point(x: 0, y: 1), goal: Point(x: 3, y: 1))
-pf.updateCell(2, y: 1, value: -1)
-pf.updateCell(2, y: 0, value: -1)
-pf.updateCell(2, y: 2, value: -1)
-pf.updateCell(3, y: 0, value: -1)
-pf.replan()
+pf.updateCell(x: 2, y: 1, value: -1)
+pf.updateCell(x: 2, y: 0, value: -1)
+pf.updateCell(x: 2, y: 2, value: -1)
+pf.updateCell(x: 3, y: 0, value: -1)
+_ = pf.replan()
 
 let path = pf.getPath()
 print("PATH: \(path)")

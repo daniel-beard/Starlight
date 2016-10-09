@@ -1,0 +1,4 @@
+language: objective-c
+osx_image: xcode8
+script: 
+  - xcodebuild -project Starlight.xcodeproj -scheme Starlight -destination 'platform=iOS Simulator,name=iPhone 7,OS=10.0' test
