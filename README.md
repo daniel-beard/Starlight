@@ -1,4 +1,4 @@
-# Starlight
+# Starlight ![](https://img.shields.io/badge/swift-3-brightgreen.svg) 
 A swift implementation of D*Lite (DStarLite) a pathfinding algorithm
 
 ### Usage
