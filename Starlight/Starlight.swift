@@ -8,29 +8,27 @@
 
 import Foundation
 
+//MARK: Typealiases
+public typealias Point = (x: Int, y: Int)
+typealias Pair = (first: Double, second: Double)
 typealias StateLinkedList = Array<State>
-extension Array {
+
+extension Array where Element == State {
     mutating func addFirst(_ element: Element) {
-        if self.count == 0 {
+        guard !self.isEmpty else {
             append(element)
-        } else {
-            insert(element, at: 0)
+            return
         }
+        insert(element, at: 0)
     }
     
     public var description: String {
-        get {
-            var result = ""
-            for item in self {
-                result += "\(item)\n"
-            }
-            return result
-        }
+        return self.reduce("", { $0 + ("\($1)\n") })
     }
 }
 
-class PriorityQueue<T: Comparable> {
-    var heap = [T]()
+private class PriorityQueue<T: Comparable> {
+    private var heap = [T]()
     
     func push(item: T) {
         heap.append(item)
@@ -46,13 +44,11 @@ class PriorityQueue<T: Comparable> {
     }
     
     func isEmpty() -> Bool {
-        return count == 0
+        return heap.isEmpty
     }
     
     var count: Int {
-        get {
-            return heap.count
-        }
+        return heap.count
     }
 }
 
@@ -60,11 +56,6 @@ struct CellInfo {
     var g = 0.0
     var rhs = 0.0
     var cost = 0.0
-}
-
-public struct Point {
-    var x = 0
-    var y = 0
 }
 
 public class Starlight {
@@ -108,7 +99,7 @@ public class Starlight {
         let val = min(getRHS(u), getG(u))
         let first = (val + heuristic(u, b: s_start) + k_m)
         let second = val
-        return State(x: u.x, y: u.y, k: Pair<Double>(first, second))
+        return State(x: u.x, y: u.y, k: Pair(first, second))
     }
     
     /// Returns the rhs value for the state u
@@ -116,10 +107,10 @@ public class Starlight {
         guard u != s_goal else {
             return 0.0
         }
-        if cellHash[u] == nil {
+        guard let cellHashU = cellHash[u] else {
             return heuristic(u, b: s_goal)
         }
-        return cellHash[u]!.rhs
+        return cellHashU.rhs
     }
 
     /// As per [S. Koenig,2002] except for two main modifications:
@@ -127,11 +118,11 @@ public class Starlight {
     ///    because this algorithm can plan forever if the start is surrounded  by obstacles
     /// 2. We lazily remove states from the open list so we never have to iterate through it.
     private func computeShortestPath() -> Int {
-        var s = StateLinkedList()
-        
+
         if openList.isEmpty() { return 1 }
         
         var k = 0
+        var s = StateLinkedList()
         while !openList.isEmpty() {
 
             // Update start
@@ -187,32 +178,33 @@ public class Starlight {
         return 0
     }
 
+    /// Helper method for generating a list of states around a current state
+    /// Moves in a clockwise manner
+    private func generateSuccessorStates(fromState u: State, k: Pair) -> [State] {
+        return [
+            State(x: u.x + 1,   y: u.y,     k: k),
+            State(x: u.x + 1,   y: u.y + 1, k: k),
+            State(x: u.x,       y: u.y + 1, k: k),
+            State(x: u.x - 1,   y: u.y + 1, k: k),
+            State(x: u.x - 1,   y: u.y,     k: k),
+            State(x: u.x - 1,   y: u.y - 1, k: k),
+            State(x: u.x,       y: u.y - 1, k: k),
+            State(x: u.x + 1,   y: u.y - 1, k: k),
+        ]
+    }
+
     /// Returns a list of successor states for state u, since this is an
     /// 8-way graph this list contains all of a cells neighbours. Unless
     /// the cell is occupied, in which case it has no successors.
     private func getSucc(_ u: State) -> StateLinkedList {
         var s = StateLinkedList()
-        var tempState = State()
         if occupied(u) { return s }
         
         // Generating the successors, starting at the immediate right,
         // moving in a clockwise manner
-        tempState = State(x: u.x + 1, y: u.y, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x + 1, y: u.y + 1, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x, y: u.y + 1, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x - 1, y: u.y + 1, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x - 1, y: u.y, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x - 1, y: u.y - 1, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x, y: u.y - 1, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
-        tempState = State(x: u.x + 1, y: u.y - 1, k: Pair(-1.0,-1.0))
-        s.addFirst(tempState)
+        // transform to StateLinkedList and return
+        let successors = generateSuccessorStates(fromState: u, k: (-1.0, -1.0))
+        successors.forEach { s.addFirst($0) }
         return s
     }
     
@@ -221,24 +213,8 @@ public class Starlight {
     /// neighbours for state u. Occupied neighbours are not added to the list
     private func getPred(_ u: State) -> StateLinkedList {
         var s = StateLinkedList()
-        var tempState = State()
-        
-        tempState = State(x: u.x + 1, y: u.y, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x + 1, y: u.y + 1, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x, y: u.y + 1, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x - 1, y: u.y + 1, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x - 1, y: u.y, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x - 1, y: u.y - 1, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x, y: u.y - 1, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
-        tempState = State(x: u.x + 1, y: u.y - 1, k: Pair(-1.0,-1.0))
-        if !occupied(tempState) { s.addFirst(tempState) }
+        let successors = generateSuccessorStates(fromState: u, k: (-1.0, -1.0))
+        successors.forEach { if !occupied($0) { s.addFirst($0) }}
         return s;
     }
     
@@ -260,27 +236,29 @@ public class Starlight {
     
     /// Returns true if state u is on the open list or not by checking if it is in the hash table.
     private func isValid(_ u: State) -> Bool {
-        if openHash[u] == nil { return false }
-        if !close(keyHashCode(u), y: openHash[u]!) { return false }
+        guard let openHashU = openHash[u] else {
+            return false
+        }
+        if !close(keyHashCode(u), y: openHashU) { return false }
         return true
     }
     
     /// Returns the value for the state u
     private func getG(_ u: State) -> Double {
-        if cellHash[u] == nil {
+        guard let cellHashU = cellHash[u] else {
             return heuristic(u, b: s_goal)
         }
-        return cellHash[u]!.g
+        return cellHashU.g
     }
     
     /// The heuristic we use is the 8-way distance
     /// scaled by a constant C1 (should be set to <= min cost
     private func heuristic(_ a: State, b: State) -> Double {
-        return eightCondist(a, b: b) * C1
+        return eightCondist(a, b) * C1
     }
     
     /// Returns the 8-way distance between state a and state b
-    private func eightCondist(_ a: State, b: State) -> Double {
+    private func eightCondist(_ a: State, _ b: State) -> Double {
         var min = Double(abs(a.x - b.x))
         var max = Double(abs(a.y - b.y))
         if min > max {
@@ -308,9 +286,8 @@ public class Starlight {
     private func occupied(_ u: State) -> Bool {
         if let cell = cellHash[u] {
             return (cell.cost < 0)
-        } else {
-            return false
         }
+        return false
     }
     
     /// Euclidean cost between state a and state b
@@ -328,8 +305,11 @@ public class Starlight {
         let yd = abs(a.y - b.y)
         var scale = 1.0
         if xd + yd > 1 { scale = 2.squareRoot() }
-        if cellHash.keys.contains(a) == false { return scale * C1 }
-        return scale * cellHash[a]!.cost
+
+        guard let cellHashA = cellHash[a] else {
+            return scale * C1
+        }
+        return scale * cellHashA.cost
     }
     
     /// Returns true if x and y are within 10E-5, false otherwise
@@ -449,23 +429,13 @@ public class Starlight {
     }
 }
 
-struct Pair<T> {
-    var first: T
-    var second: T
-    
-    init(_ f: T, _ s: T) {
-        first = f
-        second = s
-    }
-}
-
 public struct State: Hashable, Comparable, CustomStringConvertible {
     var x = 0
     var y = 0
-    var k: Pair<Double> = Pair(0.0, 0.0)
+    var k = Pair(0.0, 0.0)
     
     init() { }
-    init(x: Int, y: Int, k: Pair<Double>) {
+    init(x: Int, y: Int, k: Pair) {
         self.x = x
         self.y = y
         self.k = k

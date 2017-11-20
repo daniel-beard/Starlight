@@ -22,7 +22,7 @@ class StarlightTests: XCTestCase {
         let path = pf.getPath()
 
         XCTAssert(path.count == 5)
-        let pair = Pair<Double>(1, 1)
+        let pair = Pair(1, 1)
         XCTAssert(path[0] == State(x: 0, y: 1, k: pair))
         XCTAssert(path[1] == State(x: 1, y: 2, k: pair))
         XCTAssert(path[2] == State(x: 2, y: 3, k: pair))
