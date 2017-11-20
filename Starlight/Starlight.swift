@@ -97,18 +97,18 @@ public class Starlight {
         let startCellInfo = CellInfo(g: startHeuristic, rhs: startHeuristic, cost: C1)
         cellHash[s_start] = startCellInfo
         
-        s_start = calculateKey(&s_start)
+        s_start = calculateKey(s_start)
         s_last = s_start
     }
     
     //MARK: Private Methods
     
     /// CalculateKey - > As per [S. Koenig, 2002]
-    private func calculateKey(_ u: inout State) -> State {
+    private func calculateKey(_ u: State) -> State {
         let val = min(getRHS(u), getG(u))
-        u.k.first = (val + heuristic(u, b: s_start) + k_m)
-        u.k.second = val
-        return u
+        let first = (val + heuristic(u, b: s_start) + k_m)
+        let second = val
+        return State(x: u.x, y: u.y, k: Pair<Double>(first, second))
     }
     
     /// Returns the rhs value for the state u
@@ -132,49 +132,56 @@ public class Starlight {
         if openList.isEmpty() { return 1 }
         
         var k = 0
-        while (!openList.isEmpty() &&
-            (openList.peek() < calculateKey(&s_start)) ||
-            (getRHS(s_start) != getG(s_start))) {
+        while !openList.isEmpty() {
 
-                k += 1
-                if k > maxSteps {
-                    print("At maxsteps")
-                    return -1
+            // Update start
+            s_start = calculateKey(s_start)
+
+            // Bail if our conditions aren't met
+            guard (openList.peek() < s_start || getRHS(s_start) != getG(s_start)) else {
+                break
+            }
+
+            k += 1
+            if k > maxSteps {
+                print("At maxsteps")
+                return -1
+            }
+
+            var u = State()
+            let test = getRHS(s_start) != getG(s_start)
+
+            // Lazy remove
+            while (true) {
+                if openList.isEmpty() { return 1 }
+                u = openList.pop()
+                if !isValid(u) { continue }
+                if !(u < s_start) && !test { return 2 }
+                break
+            }
+
+            openHash[u] = nil
+            let k_old = State(state: u)
+            u = calculateKey(u)
+
+            if k_old < u { // u is out of date
+                insert(u)
+            } else if getG(u) > getRHS(u) { // needs update (got better)
+                setG(u, g: getRHS(u))
+                s = getPred(u)
+                for state in s {
+                    updateVertex(state)
                 }
-                
-                var u = State()
-                let test = getRHS(s_start) != getG(s_start)
-                
-                // Lazy remove
-                while (true) {
-                    if openList.isEmpty() { return 1 }
-                    u = openList.pop()
-                    if !isValid(u) { continue }
-                    if !(u < s_start) && !test { return 2 }
-                    break
+            } else { // g <= rhs, state has got worse
+                setG(u, g: Double.infinity)
+                s = getPred(u)
+
+                for state in s {
+                    updateVertex(state)
                 }
-                
-                openHash[u] = nil
-                let k_old = State(state: u)
-                
-                if k_old < calculateKey(&u) { // u is out of date
-                    insert(u)
-                } else if getG(u) > getRHS(u) { // needs update (got better)
-                    setG(u, g: getRHS(u))
-                    s = getPred(u)
-                    for state in s {
-                        updateVertex(state)
-                    }
-                } else { // g <= rhs, state has got worse
-                    setG(u, g: Double.infinity)
-                    s = getPred(u)
-                    
-                    for state in s {
-                        updateVertex(state)
-                    }
-                    updateVertex(u)
-                }
-                s_start = calculateKey(&s_start)
+                updateVertex(u)
+            }
+            s_start = calculateKey(s_start)
         }
         
         return 0
@@ -279,13 +286,12 @@ public class Starlight {
         if min > max {
             swap(&min, &max)
         }
-        return (M_SQRT2 - 1.0) * min + max
+        return (2.squareRoot() - 1.0) * min + max
     }
     
     /// Inserts state into openList and openHash
     private func insert(_ u: State) {
-        var u = u
-        u = calculateKey(&u)
+        let u = calculateKey(u)
         let csum = keyHashCode(u)
         openHash[u] = csum
         openList.push(item: u)
@@ -321,7 +327,7 @@ public class Starlight {
         let xd = abs(a.x - b.x)
         let yd = abs(a.y - b.y)
         var scale = 1.0
-        if xd + yd > 1 { scale = M_SQRT2 }
+        if xd + yd > 1 { scale = 2.squareRoot() }
         if cellHash.keys.contains(a) == false { return scale * C1 }
         return scale * cellHash[a]!.cost
     }
@@ -416,7 +422,7 @@ public class Starlight {
         s_start.y = y
         k_m += heuristic(s_last, b: s_start)
         
-        s_start = calculateKey(&s_start)
+        s_start = calculateKey(s_start)
         s_last = s_start
     }
     
