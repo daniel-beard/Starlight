@@ -1,4 +1,7 @@
-# Starlight ![](https://img.shields.io/badge/swift-4-brightgreen.svg) [![Build Status](https://travis-ci.org/daniel-beard/Starlight.svg?branch=master)](https://travis-ci.org/daniel-beard/Starlight)
+<img src="Resources/logo.png" width="768" >
+
+![](https://img.shields.io/badge/swift-4-brightgreen.svg) [![Build Status](https://travis-ci.org/daniel-beard/Starlight.svg?branch=master)](https://travis-ci.org/daniel-beard/Starlight)
+
 A swift implementation of D*Lite (DStarLite) a pathfinding algorithm
 
 ### Usage
